@@ -33,8 +33,9 @@ class TestConfigurationManager:
         ConfigurationManagerSingleton._shared_state = {}
 
     def test_supported_validate_type_strings(self):
-        assert 13 == len(_valid_type_strings)
-        assert ['IPv4', 'IPv6', 'JSON', 'URL', 'X509 certificate', 'boolean', 'code', 'enumeration', 'float', 'integer', 'password', 'script', 'string'] == _valid_type_strings
+        assert 14 == len(_valid_type_strings)
+        assert ['IPv4', 'IPv6', 'JSON', 'URL', 'X509 certificate', 'boolean', 'code', 'enumeration', 'float', 'integer',
+                'northTask', 'password', 'script', 'string'] == _valid_type_strings
 
     def test_supported_optional_items(self):
         assert 10 == len(_optional_items)
@@ -605,7 +606,8 @@ class TestConfigurationManager:
         ("IPv6", "2001:db8::", "2001:db8::"),
         ("password", "not implemented", "not implemented"),
         ("X509 certificate", "not implemented", "not implemented"),
-        ("JSON", "{\"foo\": \"bar\"}", '{"foo": "bar"}')
+        ("JSON", "{\"foo\": \"bar\"}", '{"foo": "bar"}'),
+        ("northTask", "item", "item")
     ])
     @pytest.mark.asyncio
     async def test__validate_category_val_valid_type(self, reset_singleton, test_input, test_value, clean_value):
@@ -621,6 +623,7 @@ class TestConfigurationManager:
         c_return_value = await c_mgr._validate_category_val(category_name=CAT_NAME, category_val=test_config, set_value_val_from_default_val=True)
         assert c_return_value[ITEM_NAME]["type"] == test_input
         assert c_return_value[ITEM_NAME]["value"] == clean_value
+
 
     @pytest.mark.asyncio
     async def test__validate_category_val_invalid_type(self, reset_singleton):
@@ -638,6 +641,7 @@ class TestConfigurationManager:
             await c_mgr._validate_category_val(category_name=CAT_NAME, category_val=test_config, set_value_val_from_default_val=True)
         assert 'For {} category, invalid entry value for entry name "type" for item name {}. valid type strings ' \
                'are: {}'.format(CAT_NAME, item_name, _valid_type_strings) == str(excinfo.value)
+
 
     @pytest.mark.parametrize("test_input", ["type", "description", "default"])
     @pytest.mark.asyncio
@@ -878,6 +882,8 @@ class TestConfigurationManager:
             await c_mgr.create_category(category_name=payload[0], category_value=payload[1], category_description=payload[2])
         assert excinfo.type is TypeError
         assert message == str(excinfo.value)
+
+
 
     @pytest.mark.parametrize("rule", [
         'value * 3 == 6',
@@ -2509,12 +2515,25 @@ class TestConfigurationManager:
         ("URL", "coap://host.co.in", True),
         ("URL", "coaps://host:6683", True),
         ("password", "not implemented", None),
-        ("X509 certificate", "not implemented", None)
+        ("X509 certificate", "not implemented", None),
+        ("northTask", "item", True),
+        ("northTask", "123", True)
     ])
     async def test__validate_type_value(self, item_type, item_val, result):
         storage_client_mock = MagicMock(spec=StorageClientAsync)
         c_mgr = ConfigurationManager(storage_client_mock)
         assert result == c_mgr._validate_type_value(item_type, item_val)
+
+    @pytest.mark.parametrize("input, expected", [
+        ('northTask', 'true'),
+        ('north', 'false'),
+        ('bool', 'false'),
+        ('boolean', 'true')
+    ])
+    async def test_valid_type(self,input,expected):
+        storage_client_mock = MagicMock(spec=StorageClientAsync)
+        c_mgr = ConfigurationManager(storage_client_mock)
+        assert expected == c_mgr._validate_type(input)
 
     @pytest.mark.parametrize("item_type, item_val", [
         ("float", ""),
@@ -2541,7 +2560,9 @@ class TestConfigurationManager:
         ("JSON", None),
         ("URL", "blah"),
         ("URL", "example.com"),
-        ("URL", "123:80")
+        ("URL", "123:80"),
+        ("northTask", 123),
+        ("northTask", 1_1)
         # TODO: can not use urlopen hence we may want to check
         # result.netloc with some regex, but limited
         # ("URL", "http://somevalue.a"),

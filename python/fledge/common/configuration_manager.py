@@ -34,7 +34,7 @@ _logger = logger.setup(__name__)
 
 # MAKE UPPER_CASE
 _valid_type_strings = sorted(['boolean', 'integer', 'float', 'string', 'IPv4', 'IPv6', 'X509 certificate', 'password',
-                              'JSON', 'URL', 'enumeration', 'script', 'code'])
+                              'JSON', 'URL', 'enumeration', 'script', 'code', 'northTask'])
 _optional_items = sorted(['readonly', 'order', 'length', 'maximum', 'minimum', 'rule', 'deprecated', 'displayName',
                           'validity', 'mandatory'])
 RESERVED_CATG = ['South', 'North', 'General', 'Advanced', 'Utilities', 'rest_api', 'Security', 'service', 'SCHEDULER',
@@ -1361,6 +1361,8 @@ class ConfigurationManager(ConfigurationManagerSingleton):
                 return False
         elif _type == 'string':
             return isinstance(_value, str)
+        elif _type == "northTask":
+            return isinstance(_value,str)
 
     def _clean(self, item_type, item_val):
         if item_type == 'boolean':
@@ -1369,6 +1371,12 @@ class ConfigurationManager(ConfigurationManagerSingleton):
             return str(float(item_val))
 
         return item_val
+
+    def _validate_type(self,value):
+        if value in _valid_type_strings:
+            return "true"
+        else:
+            return "false"
 
     def _handle_script_type(self, category_name, category_value):
         """For the given category, check for config item of type script “unhexlify” the value stored in database
